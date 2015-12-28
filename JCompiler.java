@@ -30,8 +30,15 @@ import javax.tools.JavaFileObject;
 public class JCompiler {
 
     public static void main(String args[]) throws IOException {
+        long startTime = System.nanoTime();
         String result = new JCompiler().compile(args[0]);
+        long estimatedTime = System.nanoTime() - startTime;
+
         System.out.print(result);
+        estimatedTime /= 1000;
+        estimatedTime /= 1000;
+
+        System.out.println("Elapsed time (ms): " + (String.valueOf(estimatedTime)));
     }
 
     private String compile(String file) throws IOException {
@@ -45,10 +52,6 @@ public class JCompiler {
         //JavaFileManager fileManager = new CustomClassloaderJavaFileManager(Thread.currentThread().getContextClassLoader(), standardJavaFileManager);
         FileManagerImpl fileManager = new FileManagerImpl(std);
         //ForwardingJavaFileManager<StandardJavaFileManager> fileManager = new ForwardingJavaFileManager<StandardJavaFileManager>(std);
-
-        Thread.currentThread().setContextClassLoader(new JarClassLoader());
-
-
 
         List<String> optionList = new ArrayList<String>();
         // set compiler's classpath to be same as the runtime's
