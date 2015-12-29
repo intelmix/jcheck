@@ -25,4 +25,4 @@ It will return list of errors + time taken to compile.
 As this utility will be caching compiler and file manager it will be much faster that running `javac` from command line. Useful for cases during development
 that you need instant feedback.
 
-NOTE: This utility relies on a valid `CLASSPATH` defined in environment.
+NOTE: This utility relies on a valid `CLASSPATH` defined in bash environment.
