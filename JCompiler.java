@@ -84,14 +84,7 @@ public class JCompiler {
 
     private String compile(String file) throws IOException {
         DiagnosticCollector<JavaFileObject> diagnostics = new DiagnosticCollector<JavaFileObject>();
-
-
-        //StandardJavaFileManager std = compiler.getStandardFileManager(diagnostics, null, null);
         Iterable<? extends JavaFileObject> compilationUnits = fileManager.getJavaFileObjectsFromStrings(Arrays.asList(file));
-
-        //JavaFileManager fileManager = new CustomClassloaderJavaFileManager(Thread.currentThread().getContextClassLoader(), standardJavaFileManager);
-        //FileManagerImpl fileManager = new FileManagerImpl(std);
-        //ForwardingJavaFileManager<StandardJavaFileManager> fileManager = new ForwardingJavaFileManager<StandardJavaFileManager>(std);
 
         String sourcePath = getSourcePath(file);
 
@@ -120,60 +113,4 @@ public class JCompiler {
             return "OK!\n";
         }
     }
-
-    /*private final class FileManagerImpl extends ForwardingJavaFileManager<StandardJavaFileManager> {
-
-      public FileManagerImpl(StandardJavaFileManager fileManager) {
-      super(fileManager);
-      }
-
-      @Override
-      public ClassLoader getClassLoader(JavaFileManager.Location location) {
-      System.out.println("Creating classloader");
-      return new JarClassLoader();
-      }
-    }
-
-    private final class JarClassLoader extends ClassLoader {
-    private String jarFile = ""; //Path to the jar file
-
-        public JarClassLoader() {
-            super(JarClassLoader.class.getClassLoader()); //calls the parent class loader's constructor
-        }
-
-        public Class loadClass(String className) throws ClassNotFoundException {
-            return findClass(className);
-        }
-
-        public Class findClass(String className) {
-            byte classByte[];
-            Class result = null;
-            System.out.println("Loading " + className);
-
-            try {
-                return findSystemClass(className);
-            } catch (Exception e) {
-            }
-
-            try {
-                JarFile jar = new JarFile(jarFile);
-                JarEntry entry = jar.getJarEntry(className + ".class");
-                InputStream is = jar.getInputStream(entry);
-                ByteArrayOutputStream byteStream = new ByteArrayOutputStream();
-                int nextValue = is.read();
-                while (-1 != nextValue) {
-                    byteStream.write(nextValue);
-                    nextValue = is.read();
-                }
-
-                classByte = byteStream.toByteArray();
-                result = defineClass(className, classByte, 0, classByte.length, null);
-                return result;
-            } catch (Exception e) {
-                return null;
-            }
-        }
-
-    }*/
-
 }
