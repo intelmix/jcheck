@@ -26,3 +26,12 @@ As this utility will be caching compiler and file manager it will be much faster
 that you need instant feedback.
 
 NOTE: This utility relies on a valid `CLASSPATH` defined in bash environment.
+
+
+To use this utility in `vim` more easily, you can add this to your `.vimrc`:
+
+```
+:command! JC !curl http://localhost:8000/check?%:p
+```
+
+After that you can enter `JC` command in vim's command prompt and view compiler errors.
