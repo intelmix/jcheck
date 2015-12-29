@@ -26,42 +26,87 @@ import java.net.URL;
 import java.net.JarURLConnection;
 import java.net.URI;
 import javax.tools.JavaFileObject;
+import java.io.*; 
+import java.net.*;
+import com.sun.net.httpserver.HttpExchange;
+import com.sun.net.httpserver.HttpHandler;
+import com.sun.net.httpserver.HttpServer;
 
 public class JCompiler {
+    private static JCompiler myObject = new JCompiler();
+    private static JavaCompiler compiler = ToolProvider.getSystemJavaCompiler();
+    private static StandardJavaFileManager fileManager = compiler.getStandardFileManager(null, null, null);
 
     public static void main(String args[]) throws IOException {
-        long startTime = System.nanoTime();
-        String result = new JCompiler().compile(args[0]);
-        long estimatedTime = System.nanoTime() - startTime;
-
-        System.out.print(result);
-        estimatedTime /= 1000;
-        estimatedTime /= 1000;
-
-        System.out.println("Elapsed time (ms): " + (String.valueOf(estimatedTime)));
+        HttpServer server = HttpServer.create(new InetSocketAddress(8000), 0);
+        server.createContext("/check", new MyHandler());
+        server.setExecutor(null); // creates a default executor
+        server.start();
     }
 
-    private String compile(String file) throws IOException {
-        JavaCompiler compiler = ToolProvider.getSystemJavaCompiler();
-        DiagnosticCollector<JavaFileObject> diagnostics = new DiagnosticCollector<JavaFileObject>();
-        //StandardJavaFileManager fileManager = compiler.getStandardFileManager(diagnostics, null, null);
+    static class MyHandler implements HttpHandler {
+        @Override
+        public void handle(HttpExchange t) throws IOException {
+            URI requestedUri = t.getRequestURI();
+            long startTime = System.nanoTime();
+            String response = myObject.compile(requestedUri.getRawQuery());
+            long estimatedTime = System.nanoTime() - startTime;
+            estimatedTime /= 1000;
+            estimatedTime /= 1000;
+            response += "\n(took "+String.valueOf(estimatedTime) + " ms)";
+            
+            t.sendResponseHeaders(200, response.length());
+            OutputStream os = t.getResponseBody();
+            os.write(response.getBytes());
+            os.close();
+        }
+    }
 
-        StandardJavaFileManager std = compiler.getStandardFileManager(diagnostics, null, null);
-        Iterable<? extends JavaFileObject> compilationUnits = std.getJavaFileObjectsFromStrings(Arrays.asList(file));
+    private String method1() { return "method1"; }
+    private String getSourcePath(String filePath) {
+        //go up in the file hierarchy until you find a pom.xml or else return null
+        File file = new File(filePath);
+
+        while ( file != null ) {
+            String parentPath = file.getAbsoluteFile().getParent();
+
+            if ( parentPath == null ) return null;
+            file = new File(parentPath);
+
+            if ( new File(parentPath, "pom.xml").exists() ) {
+                return parentPath + "/src/main/java/";
+            }
+        }
+
+        return null;
+    }
+
+
+    private String compile(String file) throws IOException {
+        DiagnosticCollector<JavaFileObject> diagnostics = new DiagnosticCollector<JavaFileObject>();
+
+
+        //StandardJavaFileManager std = compiler.getStandardFileManager(diagnostics, null, null);
+        Iterable<? extends JavaFileObject> compilationUnits = fileManager.getJavaFileObjectsFromStrings(Arrays.asList(file));
 
         //JavaFileManager fileManager = new CustomClassloaderJavaFileManager(Thread.currentThread().getContextClassLoader(), standardJavaFileManager);
-        FileManagerImpl fileManager = new FileManagerImpl(std);
+        //FileManagerImpl fileManager = new FileManagerImpl(std);
         //ForwardingJavaFileManager<StandardJavaFileManager> fileManager = new ForwardingJavaFileManager<StandardJavaFileManager>(std);
+
+        String sourcePath = getSourcePath(file);
 
         List<String> optionList = new ArrayList<String>();
         // set compiler's classpath to be same as the runtime's
         optionList.addAll(Arrays.asList("-classpath",System.getenv("CLASSPATH")));
-        optionList.addAll(Arrays.asList("-sourcepath","/srv/newzrobot/server/src/main/java/"));
+
+        if ( sourcePath != null ) {
+            optionList.addAll(Arrays.asList("-sourcepath","/srv/newzrobot/server/src/main/java/"));
+        }
 
         JavaCompiler.CompilationTask task = compiler.getTask(null, fileManager, diagnostics, optionList,
                 null, compilationUnits);
         boolean success = task.call();
-        std.close();
+        fileManager.close();
 
         if (!success) {
             StringBuilder sb = new StringBuilder();
@@ -76,21 +121,21 @@ public class JCompiler {
         }
     }
 
-    private final class FileManagerImpl extends ForwardingJavaFileManager<StandardJavaFileManager> {
+    /*private final class FileManagerImpl extends ForwardingJavaFileManager<StandardJavaFileManager> {
 
-        public FileManagerImpl(StandardJavaFileManager fileManager) {
-            super(fileManager);
-        }
+      public FileManagerImpl(StandardJavaFileManager fileManager) {
+      super(fileManager);
+      }
 
-        @Override
-        public ClassLoader getClassLoader(JavaFileManager.Location location) {
-            System.out.println("Creating classloader");
-            return new JarClassLoader();
-        }
+      @Override
+      public ClassLoader getClassLoader(JavaFileManager.Location location) {
+      System.out.println("Creating classloader");
+      return new JarClassLoader();
+      }
     }
 
     private final class JarClassLoader extends ClassLoader {
-        private String jarFile = ""; //Path to the jar file
+    private String jarFile = ""; //Path to the jar file
 
         public JarClassLoader() {
             super(JarClassLoader.class.getClassLoader()); //calls the parent class loader's constructor
@@ -129,6 +174,6 @@ public class JCompiler {
             }
         }
 
-    }
+    }*/
 
 }
