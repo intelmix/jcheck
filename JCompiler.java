@@ -91,9 +91,10 @@ public class JCompiler {
         List<String> optionList = new ArrayList<String>();
         // set compiler's classpath to be same as the runtime's
         optionList.addAll(Arrays.asList("-classpath",System.getenv("CLASSPATH")));
+        optionList.addAll(Arrays.asList("-d","/tmp"));
 
         if ( sourcePath != null ) {
-            optionList.addAll(Arrays.asList("-sourcepath","/srv/newzrobot/server/src/main/java/"));
+            optionList.addAll(Arrays.asList("-sourcepath",sourcePath));
         }
 
         JavaCompiler.CompilationTask task = compiler.getTask(null, fileManager, diagnostics, optionList,
