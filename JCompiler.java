@@ -35,7 +35,11 @@ import com.sun.net.httpserver.HttpServer;
 public class JCompiler {
     private static JCompiler myObject = new JCompiler();
     private static JavaCompiler compiler = ToolProvider.getSystemJavaCompiler();
+
+    //It seems that re-using fileManager across multiple checking for different files will make using '-sourcepath' option effect-less
+    //so we will cache last used source file and re-create fileManager when it is changed
     private static StandardJavaFileManager fileManager = compiler.getStandardFileManager(null, null, null);
+    private static String lastCheckedFile = null;
 
     public static void main(String args[]) throws IOException {
         HttpServer server = HttpServer.create(new InetSocketAddress(8000), 0);
@@ -48,7 +52,15 @@ public class JCompiler {
         @Override
         public void handle(HttpExchange t) throws IOException {
             URI requestedUri = t.getRequestURI();
+            String fileToCheck = requestedUri.getRawQuery();
+
             long startTime = System.nanoTime();
+            if ( lastCheckedFile == null || !lastCheckedFile.equals(fileToCheck) ) {
+                 lastCheckedFile = fileToCheck;
+                 fileManager.close();
+                 fileManager = compiler.getStandardFileManager(null, null, null);
+            }
+
             String response = myObject.compile(requestedUri.getRawQuery());
             long estimatedTime = System.nanoTime() - startTime;
             estimatedTime /= 1000;
@@ -62,7 +74,6 @@ public class JCompiler {
         }
     }
 
-    private String method1() { return "method1"; }
     private String getSourcePath(String filePath) {
         //go up in the file hierarchy until you find a pom.xml or else return null
         File file = new File(filePath);
@@ -87,15 +98,16 @@ public class JCompiler {
         Iterable<? extends JavaFileObject> compilationUnits = fileManager.getJavaFileObjectsFromStrings(Arrays.asList(file));
 
         String sourcePath = getSourcePath(file);
+        System.out.println("source path is " + sourcePath);
 
         List<String> optionList = new ArrayList<String>();
-        // set compiler's classpath to be same as the runtime's
-        optionList.addAll(Arrays.asList("-classpath",System.getenv("CLASSPATH")));
-        optionList.addAll(Arrays.asList("-d","/tmp"));
-
         if ( sourcePath != null ) {
             optionList.addAll(Arrays.asList("-sourcepath",sourcePath));
         }
+
+        // set compiler's classpath to be same as the runtime's
+        optionList.addAll(Arrays.asList("-classpath",System.getenv("CLASSPATH")));
+        optionList.addAll(Arrays.asList("-d","/tmp"));
 
         JavaCompiler.CompilationTask task = compiler.getTask(null, fileManager, diagnostics, optionList,
                 null, compilationUnits);
