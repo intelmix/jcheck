@@ -98,7 +98,6 @@ public class JCompiler {
         Iterable<? extends JavaFileObject> compilationUnits = fileManager.getJavaFileObjectsFromStrings(Arrays.asList(file));
 
         String sourcePath = getSourcePath(file);
-        System.out.println("source path is " + sourcePath);
 
         List<String> optionList = new ArrayList<String>();
         if ( sourcePath != null ) {
